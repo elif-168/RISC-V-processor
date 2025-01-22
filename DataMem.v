@@ -32,9 +32,9 @@ module DataMemory(
     always @(posedge clk) begin
         if (we) begin
             case (funct3)
-                3'b000: data[addr[31:2]][7:0] <= wd[7:0];                              // SB: Store Byte
-                3'b001: data[addr[31:2]][15:0] <= wd[15:0];                            // SH: Store Halfword
-                3'b010: data[addr[31:2]] <= wd;                                        // SW: Store Word
+                3'b000: data[addr[31:2]][7:0] <= wd[7:0]; //SB                          // SB: Store Byte
+                3'b001: data[addr[31:2]][15:0] <= wd[15:0]; //SH                         // SH: Store Halfword
+                3'b010: data[addr[31:2]] <= wd;  //SW                       // SW: Store Word
             endcase
         end
     end

@@ -65,9 +65,10 @@ module processor (
     control_unit control (
         .op(instruction[6:0]),
         .funct3(instruction[14:12]),
-        .funct7(instruction[31:29]),
+        .funct7(instruction[31:25]),
         .zero(aluZero),
         .pcSrc(pcSrc),
+        .readA2(instruction[24:20]),
         .resultSrc(resultSrc),
         .memWrite(memWrite),
         .aluControl(aluControl),

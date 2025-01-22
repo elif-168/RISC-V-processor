@@ -69,15 +69,13 @@ module alu (
 
              //B-extension instructions
  
-            6'b010000: aluResult = {srcA[15:0], srcA[31:16]}; // ROL16 (Rotate left 16 bits)******
-            6'b010001: aluResult = {srcA[31:16], srcA[15:0]}; // ROR16 (Rotate right 16 bits) ******
             6'b010010: aluResult = (srcA << 1) + srcB; // SH1ADD (Shift Left 1 and Add)
             6'b010011: aluResult = (srcA << 2) + srcB; // SH2ADD (Shift Left 2 and Add)
             6'b010100: aluResult = (srcA << 3) + srcB; // SH3ADD (Shift Left 3 and Add)  
             // Bit manipulation
             6'b010101: aluResult = srcA ^ (1 << srcB[4:0]); // BINV (Bit Invert)
             6'b010110: aluResult = srcA & ~(1 << srcB[4:0]); // BCLR (Bit Clear)
-            6'b010111: aluResult = srcA | (1 << srcB[4:0]); // BSET (Bit Set)
+            6'b010111: aluResult = srcA | (1 << srcB[4:0]); // BSET (Bit Set) shifts 1 by the number in src[4:0]
 
             // Min and Max
             6'b011000: aluResult = ($signed(srcA) > $signed(srcB)) ? srcA : srcB; // MAX
@@ -107,7 +105,7 @@ module alu (
                     aluResult = aluResult + temp[i];
             end // CPOP
 
-            // Leading/trailing zero count  CTZ
+            // trailing zero count  CTZ
             6'b100001: begin
                 aluResult = 0;
                 temp = srcA;
@@ -115,7 +113,7 @@ module alu (
                     aluResult = aluResult + 1;
                     temp = temp << 1;
                 end
-            end // CLZ
+            end // Leading zero count CLZ
             6'b100010: begin
                 aluResult = 0;
                 temp = srcA;
