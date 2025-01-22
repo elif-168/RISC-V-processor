@@ -1,0 +1,41 @@
+000080B3
+00402283
+00002083
+01428193
+0051B233
+00402223
+
+FFFFF837
+20286333
+000142B7
+00628463
+
+00418133
+A0383633
+E03833B3
+
+
+and x1, x0, x1 ; x1 <-- x0 & x1
+lw x5, 0x4(x0) ; x5 <-- dataMem[1]
+lw x1, 0x0(x0) ; x1 <-- dataMem[0]
+
+;values of changed registers:
+; x5: 1
+; x1: 0
+
+addi x3, x5, 20 ; x3 <-- 20 + x5
+mul x4, x3, x5 ; x4 <-- x3 * x5
+sw x4, 0x4(x0) ; dataMem[1] <-- x4
+
+;values of changed registers:
+; x3: 21
+; x4: 21
+
+lui x16, -1
+cpop x6, x16
+lui x5, 20
+beq x6, x5, OFFSET
+add x2, x3, x4
+OFFSET: divu x12, x16, x3
+remu x7, x16, x3 
+00A60963 

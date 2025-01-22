@@ -5,6 +5,7 @@ module reg_file (
     input [31:0] data, // to write
     input we, //write enable
     input clk,
+    
     output[31:0] RD1, // data from read ports
     output [31:0] RD2 
 );

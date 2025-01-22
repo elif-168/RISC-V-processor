@@ -22,10 +22,10 @@ module instruction_mem_tb;
         address = 1; #10; // Access instruction at address 1
         $display("Address: %h, Instruction: %b", address, instr);
 
-        address = 2; #10; // Access instruction at address 2
+        address = 16; #10; // Access instruction at address 2
         $display("Address: %h, Instruction: %b", address, instr);
 
-        address = 3; #10; // Access instruction at address 3
+        address = 17; #10; // Access instruction at address 3
         $display("Address: %h, Instruction: %b", address, instr);
 
         $finish; // End simulation

@@ -10,9 +10,9 @@ module control_unit_tb;
     wire pcSrc;
     wire resultSrc;
     wire memWrite;
-    wire [3:0] aluControl;
+    wire [5:0] aluControl;
     wire aluSrc;
-    wire [1:0] immSrc;
+    wire [2:0] immSrc;
     wire regWrite;
 
     control_unit dut (
@@ -109,7 +109,7 @@ module control_unit_tb;
         zero = 0;
         #10;
 
-        $display("I_ECALL:  pcSrc= %b,  resultSrc = %b, memWrite = %b, aluControl = %b, aluSrc = %b, immSrc = %b, regWrite = %b", pcSrc, resultSrc, memWrite, aluControl, aluSrc, immSrc, regWrite);
+        $display("I_ECALL:  pcSrc= %b,  resultSrc = %b, memWrite = %b, aluControl = %b, aluSrc = %b, immSrc = %b, regWrite = %b branch = %b", pcSrc, resultSrc, memWrite, aluControl, aluSrc, immSrc, regWrite);
 
         $finish;
     end

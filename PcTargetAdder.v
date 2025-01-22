@@ -1,3 +1,5 @@
+`include "FullAdder.v"
+
 module PCTargetAdder
 (
     input wire [31:0] pc,        // current program counter
@@ -5,66 +7,33 @@ module PCTargetAdder
     output wire [31:0] pcTarget  // Target program counter
 );
 
-    wire cout; // Carry-out of the addition
+     wire signed [31:0] signed_pc;
+    wire signed [31:0] signed_immVal;
+    wire signed [31:0] signed_pcTarget;
 
-    // Instantiate the full adder to add PC and immediate
+    assign signed_pc = pc;
+    assign signed_immVal = immVal;
+
+    // Instantiate the full adder for signed addition
     full_adder_32bit adder (
-        .a(pc),
-        .b(immVal),
-        .cin(1'b0),         // No initial carry-in
-        .sum(pcTarget),   // Output sum (target PC)
-        .cout(cout)         // Carry-out (not used here)
+        .a(signed_pc),
+        .b(signed_immVal),
+        .cin(1'b0),
+        .sum(signed_pcTarget),
+        .cout()
     );
 
-endmodule
+    assign pcTarget = signed_pcTarget; // Return signed result 
 
-module full_adder_32bit(
-    input [31:0] a,         
-    input [31:0] b,          
-    input cin,               
-    output [31:0] sum,       
-    output cout              
-);
-    wire [31:0] carry;       
+/*
+    wire signed [31:0] signed_pc;
+    wire signed [31:0] signed_immVal;
 
+    assign signed_pc = $signed(pc);
+    assign signed_immVal = $signed(immVal);
 
-    genvar i;
-    generate //allows creating multiple instances in a block
-        for (i = 0; i < 32; i = i + 1) begin : full_adder_gen
-            if (i == 0) begin
-                
-                full_adder fa (
-                    .a(a[i]),
-                    .b(b[i]),
-                    .cin(cin),
-                    .sum(sum[i]),
-                    .cout(carry[i])
-                );
-            end else begin
-                
-                full_adder fa (
-                    .a(a[i]),
-                    .b(b[i]),
-                    .cin(carry[i-1]),
-                    .sum(sum[i]),
-                    .cout(carry[i])
-                );
-            end
-        end
-    endgenerate
+    assign pcTarget = signed_pc + signed_immVal;
+*/
+    
 
-    // the last carryout
-    assign cout = carry[31];
-endmodule
-
-// bit size full adder
-module full_adder(
-    input a,                 
-    input b,                 
-    input cin,               
-    output sum,              
-    output cout              
-);
-    assign sum = a ^ b ^ cin; 
-    assign cout = (a & b) | (b & cin) | (a & cin); 
 endmodule

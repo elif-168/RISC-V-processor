@@ -3,13 +3,13 @@ module instruction_mem (
     output [31:0] instruction
 );
 
-    reg [31:0] memory [0:255]; // Memory for 256 instructions, 32 bits each
+    reg [31:0] memory [0:63]; // Memory for 64 instructions, 32 bits each
 
     initial begin
         $readmemh("instructions.txt", memory); // Load instructions from the file
     end
 
-    // Use the lower 8 bits of the address to access the memory
-    assign instruction = memory[instruction_address[7:0]];
+   
+    assign instruction = memory[instruction_address[31:2]]; // shift 2 or divide by 4 
 
 endmodule

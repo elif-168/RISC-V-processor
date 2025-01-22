@@ -2,12 +2,14 @@
 module Pc_tb;
 
     reg clk;
+    reg reset;
     reg [31:0] pc_in;
     wire [31:0] pc_out;
 
 
     Pc dut (
         .clk(clk),
+        .reset(reset),
         .pc_in(pc_in),
         .pc_out(pc_out)
     );

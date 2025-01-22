@@ -5,7 +5,7 @@ module alu_tb;
     // Inputs to the ALU
     reg [31:0] srcA;
     reg [31:0] srcB;
-    reg [3:0] aluControl;
+    reg [5:0] aluControl;
 
     // Outputs from the ALU
     wire [31:0] aluResult;
@@ -158,7 +158,28 @@ module alu_tb;
         #10;
         $display("REMU: srcA=%d, srcB=%d, aluResult=%d, zero=%b", srcA, srcB, aluResult, zero);
 
+            // Test BEQ: Branch if equal
+        srcA = 32'd10;
+        srcB = 32'd10;
+        aluControl = 6'b101111; // BEQ
+        #10;
+        if (dut.branch_taken  !== 1) $display("Error: BEQ failed");
 
+        // Test BNE: Branch if not equal
+        srcA = 32'd10;
+        srcB = 32'd5;
+        aluControl = 6'b110000; // BNE
+        #10;
+        if (dut.branch_taken !== 1) $display("Error: BNE failed");
+
+        srcA = 32'd10;
+        srcB = 32'd5;
+        aluControl = 6'b001110 ; // ROL
+        #10;
+
+        #10;
+        $display("REMU: srcA=%d, srcB=%d, aluResult=%d, zero=%b", srcA, srcB, aluResult, zero);
+           
 
         $finish;
     end

@@ -1,9 +1,12 @@
+`include "FullAdder.v"
+
 module alu (
     input [31:0] srcA,
     input [31:0] srcB,
-    input [3:0] aluControl,
+    input [5:0] aluControl,
     output reg zero,
-    output reg [31:0] aluResult
+    output reg [31:0] aluResult,
+    output reg branch_taken
 );
 
     // Internal wires for add/sub results
@@ -18,6 +21,7 @@ module alu (
     reg signed [31:0] dividend_signed, divisor_signed;
     reg [31:0] dividend_unsigned, divisor_unsigned;
     integer i;
+    reg [31:0] temp;
 
     // Instantiating adders and subtractors
     full_adder_32bit adder (
@@ -40,22 +44,94 @@ module alu (
         // Default assignments
         aluResult = 32'b0;
         zero = 1'b0;
-
+        branch_taken = 1'b0;
         case (aluControl)
-            4'b0000: aluResult = addResult; // ADD
-            4'b0001: aluResult = subResult; // SUB
-            4'b0100: aluResult = srcA & srcB; // AND
-            4'b0101: aluResult = srcA | srcB; // OR
-            4'b0010: aluResult = bitwise_shift_left(srcA, srcB[4:0]); // Shift srcA by srcB[4:0]  SLL
-            4'b0011: aluResult = ($signed(srcA) < $signed(srcB)) ? 32'b1 : 32'b0; // SLT
-            4'b1111: aluResult = (srcA < srcB) ? 32'b1 : 32'b0; // SLTU
+            6'b000000: aluResult = addResult; // ADD
+            6'b000001: aluResult = subResult; // SUB
+            6'b000010: aluResult = srcA & srcB; // AND
+            6'b000011: aluResult = srcA | srcB; // OR
+            6'b000100: aluResult = srcA ^ srcB; // XOR
+            6'b000101: aluResult = ($signed(srcA) < $signed(srcB)) ? 32'b1 : 32'b0; // SLT
+            6'b000110: aluResult = bitwise_shift_left(srcA, srcB[4:0]); // Shift srcA by srcB[4:0]  SLL
             
-            4'b0110: aluResult = srcA ^ srcB; // XOR
-            4'b0111: aluResult = bitwise_shift_right_logical(srcA, srcB[4:0]);  // SRL (Shift Right Logical)
-            4'b1000: aluResult = bitwise_shift_right_arithmetic(srcA, srcB[4:0]); // SRA (Shift Right Arithmetic)
+            6'b000111: aluResult = (srcA < srcB) ? 32'b1 : 32'b0; // SLTU
+            
+            6'b001000: aluResult = bitwise_shift_right_logical(srcA, srcB[4:0]);  // SRL (Shift Right Logical)
+            6'b001001: aluResult = bitwise_shift_right_arithmetic(srcA, srcB[4:0]); // SRA (Shift Right Arithmetic)
+
+            6'b001010: aluResult = srcA & ~srcB; // ANDN
+            6'b001011: aluResult = srcA | ~srcB; // ORN
+            6'b001100: aluResult = srcA ^ ~srcB; // XNOR
+            6'b001101: aluResult = {srcA[7:0], srcA[15:8], srcA[23:16], srcA[31:24]}; // REV8(Reverse Byte Order)
+            6'b001110: aluResult = (srcA << srcB[4:0]) | (srcA >> (32 - srcB[4:0])); // ROL
+            6'b001111: aluResult = (srcA >> srcB[4:0]) | (srcA << (32 - srcB[4:0])); // ROR
+
+
+             //B-extension instructions
+ 
+            6'b010000: aluResult = {srcA[15:0], srcA[31:16]}; // ROL16 (Rotate left 16 bits)******
+            6'b010001: aluResult = {srcA[31:16], srcA[15:0]}; // ROR16 (Rotate right 16 bits) ******
+            6'b010010: aluResult = (srcA << 1) + srcB; // SH1ADD (Shift Left 1 and Add)
+            6'b010011: aluResult = (srcA << 2) + srcB; // SH2ADD (Shift Left 2 and Add)
+            6'b010100: aluResult = (srcA << 3) + srcB; // SH3ADD (Shift Left 3 and Add)  
+            // Bit manipulation
+            6'b010101: aluResult = srcA ^ (1 << srcB[4:0]); // BINV (Bit Invert)
+            6'b010110: aluResult = srcA & ~(1 << srcB[4:0]); // BCLR (Bit Clear)
+            6'b010111: aluResult = srcA | (1 << srcB[4:0]); // BSET (Bit Set)
+
+            // Min and Max
+            6'b011000: aluResult = ($signed(srcA) > $signed(srcB)) ? srcA : srcB; // MAX
+            6'b011001: aluResult = ($signed(srcA) < $signed(srcB)) ? srcA : srcB; // MIN
+            6'b011010: aluResult = (srcA > srcB) ? srcA : srcB; // MAXU (Unsigned)
+            6'b011011: aluResult = (srcA < srcB) ? srcA : srcB; // MINU (Unsigned)
+
+                   
+
+            6'b011100: aluResult = {  //ORC.B
+                (|srcA[31:24] ? 8'hFF : 8'h00), // Check the most significant byte
+                (|srcA[23:16] ? 8'hFF : 8'h00), // Check the second byte
+                (|srcA[15:8]  ? 8'hFF : 8'h00), // Check the third byte
+                (|srcA[7:0]   ? 8'hFF : 8'h00)  // Check the least significant byte
+            };
+
+            // Sign and Zero Extension
+            6'b011101: aluResult = {{24{srcA[7]}}, srcA[7:0]}; // SEXT.B (Sign Extend Byte)
+            6'b011110: aluResult = {{16{srcA[15]}}, srcA[15:0]}; // SEXT.H (Sign Extend Halfword)
+            6'b011111: aluResult = {16'b0, srcA[15:0]}; // ZEXT.H (Zero Extend Halfword)
+
+            // Population count
+            6'b100000: begin
+                temp = srcA;
+                aluResult = 0;
+                for (i = 0; i < 32; i = i + 1)
+                    aluResult = aluResult + temp[i];
+            end // CPOP
+
+            // Leading/trailing zero count  CTZ
+            6'b100001: begin
+                aluResult = 0;
+                temp = srcA;
+                while (temp[31] == 0 && aluResult < 32) begin
+                    aluResult = aluResult + 1;
+                    temp = temp << 1;
+                end
+            end // CLZ
+            6'b100010: begin
+                aluResult = 0;
+                temp = srcA;
+                while (temp[0] == 0 && aluResult < 32) begin
+                    aluResult = aluResult + 1;
+                    temp = temp >> 1;
+                end
+            end // CTZ
+
+            6'b100011: aluResult = ($signed(srcA) > $signed(srcB)) ? srcA : srcB; // MAX
+            6'b100100: aluResult = ($signed(srcA) < $signed(srcB)) ? srcA : srcB; // MIN
+            6'b100101: aluResult = (srcA > srcB) ? srcA : srcB; // MAXU
+            6'b100110: aluResult = (srcA < srcB) ? srcA : srcB; // MINU
 
             // Multiplication Instructions
-            4'b0111: begin // MUL (Signed x Signed)
+            6'b100111: begin // MUL (Signed x Signed)
                 product = 64'b0;
                 signed_srcA = srcA;
                 signed_srcB = srcB;
@@ -69,7 +145,7 @@ module alu (
                 aluResult = product[31:0]; // Low 32 bits
             end
 
-            4'b1000: begin // MULH (Signed x Signed High 32 bits)
+            6'b101000: begin // MULH (Signed x Signed High 32 bits)
                 product = 64'b0;
                 signed_srcA = srcA;
                 signed_srcB = srcB;
@@ -83,7 +159,7 @@ module alu (
                 aluResult = product[63:32]; // High 32 bits
             end
 
-            4'b1001: begin // MULHU (Unsigned x Unsigned High 32 bits)
+            6'b101001: begin // MULHU (Unsigned x Unsigned High 32 bits)
                 product = 64'b0;
                 unsigned_srcA = srcA;
                 unsigned_srcB = srcB;
@@ -97,7 +173,7 @@ module alu (
                 aluResult = product[63:32]; // High 32 bits
             end
 
-            4'b1010: begin // MULHSU (Signed x Unsigned High 32 bits)
+            6'b101010: begin // MULHSU (Signed x Unsigned High 32 bits)
                 product = 64'b0;
                 signed_srcA = srcA;
                 unsigned_srcB = srcB;
@@ -112,7 +188,7 @@ module alu (
             end
 
             // Division Instructions
-            4'b1011: begin // DIV (Signed Division)
+            6'b101011: begin // DIV (Signed Division)
                 dividend_signed = srcA;
                 divisor_signed = srcB;
 
@@ -130,7 +206,7 @@ module alu (
                 aluResult = quotient;
             end
 
-            4'b1100: begin // DIVU (Unsigned Division)
+            6'b101100: begin // DIVU (Unsigned Division)
                 dividend_unsigned = srcA;
                 divisor_unsigned = srcB;
 
@@ -148,7 +224,7 @@ module alu (
                 aluResult = quotient;
             end
 
-            4'b1101: begin // REM (Signed Remainder)
+            6'b101101: begin // REM (Signed Remainder)
                 dividend_signed = srcA;
                 divisor_signed = srcB;
 
@@ -166,7 +242,7 @@ module alu (
                 aluResult = remainder;
             end
 
-            4'b1110: begin // REMU (Unsigned Remainder)
+            6'b101110: begin // REMU (Unsigned Remainder)
                 dividend_unsigned = srcA;
                 divisor_unsigned = srcB;
 
@@ -183,8 +259,22 @@ module alu (
 
                 aluResult = remainder;
             end
+            6'b101111: branch_taken = (srcA == srcB); // BEQ
+            6'b110000: branch_taken = (srcA != srcB); // BNE
+            6'b110001: branch_taken = ($signed(srcA) < $signed(srcB)); // BLT (Signed)
+            6'b110010: branch_taken = (srcA < srcB); // BLTU (Unsigned)
+            6'b110011: branch_taken = ($signed(srcA) >= $signed(srcB)); // BGE (Signed)
+            6'b110100: branch_taken = (srcA >= srcB); // BGEU (Unsigned)
+            6'b110101: branch_taken = 1; //JAL 
+            6'b110110: begin
+                branch_taken = 1; //JALR
+                aluResult = addResult; // ADD
+            end
 
-            default: aluResult = 32'b0; // Default case
+            default: begin
+                aluResult = 32'b0; // Default case /NOP /FENCE
+                branch_taken = 0;
+            end
         endcase
 
         // Zero flag
@@ -273,54 +363,3 @@ endfunction
     
 endmodule
 
-
-module full_adder_32bit(
-    input [31:0] a,         
-    input [31:0] b,          
-    input cin,               
-    output [31:0] sum,       
-    output cout              
-);
-    wire [31:0] carry;       
-
-
-    genvar i;
-    generate //allows creating multiple instances in a block
-        for (i = 0; i < 32; i = i + 1) begin : full_adder_gen
-            if (i == 0) begin
-                
-                full_adder fa (
-                    .a(a[i]),
-                    .b(b[i]),
-                    .cin(cin),
-                    .sum(sum[i]),
-                    .cout(carry[i])
-                );
-            end else begin
-                
-                full_adder fa (
-                    .a(a[i]),
-                    .b(b[i]),
-                    .cin(carry[i-1]),
-                    .sum(sum[i]),
-                    .cout(carry[i])
-                );
-            end
-        end
-    endgenerate
-
-    // the last carryout
-    assign cout = carry[31];
-endmodule
-
-// bit size full adder
-module full_adder(
-    input a,                 
-    input b,                 
-    input cin,               
-    output sum,              
-    output cout              
-);
-    assign sum = a ^ b ^ cin; 
-    assign cout = (a & b) | (b & cin) | (a & cin); 
-endmodule

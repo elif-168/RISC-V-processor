@@ -1,15 +1,16 @@
 module control_unit (
     input [6:0] op,
     input [2:0] funct3,
-    input [2:0]funct7, // funct7 taking the bits [31:29] 
+    input [2:0]funct7, // 
     input zero,
+    input branch_taken,
 
     output reg pcSrc,
     output reg resultSrc,
     output reg memWrite,
-    output reg [3:0] aluControl, // 6 instructions from R32I + 8 instructions from M extension --> 14 so 4 bits are required
+    output reg [5:0] aluControl, 
     output reg aluSrc,
-    output reg [1:0] immSrc,
+    output reg [2:0] immSrc,
     output reg regWrite
 );
 
@@ -28,49 +29,86 @@ module control_unit (
 
     always @(*) begin   
         // Default values for control signals
-        // if default value suffices we dont need to write it again in the case selection
         pcSrc      = 0;
         resultSrc  = 0;
         memWrite   = 0;
-        aluControl = 4'b0000;
+        aluControl = 6'b000000;
         aluSrc     = 0;
-        immSrc     = 2'b00;
+        immSrc     = 3'b000;
         regWrite   = 0;
 
         case (op)
             R_TYPE: begin
                 regWrite   = 1;
                 aluSrc     = 0;
-                immSrc     = 2'b00;
+                immSrc     = 3'b000;
                 resultSrc  = 0;
                 memWrite   = 0;
                 pcSrc      = 0;
                 // ALU control based on funct3 and funct7
                 case (funct3)
-                    3'b000: aluControl = (funct7 == 1) ? 4'b0001 : 4'b0000; // SUB/ADD
-                    3'b111: aluControl = 4'b0100; // AND
-                    3'b110: aluControl = 4'b0101; // OR
-                    3'b001: aluControl = 4'b0010; // SLL
-                    3'b010: aluControl = 4'b0011; // SLT
-                    3'b101: aluControl = 4'b1111; // SLTU
-
+                    3'b000: aluControl = (funct7 == 1) ? 6'b000001 : 6'b000000; // SUB/ADD
+                    3'b111: aluControl = 6'b000010; // AND
+                    3'b001: aluControl = 6'b000110; // SLL
+                    3'b010: aluControl = 6'b000101; // SLT
+                     
+                    
                     3'b011:
                         case(funct7)
-                            3'b000: aluControl = 4'b0110;//MUL
-                            3'b001: aluControl = 4'b0111;//MULH
-                            3'b010: aluControl = 4'b1000;//MULHU
-                            3'b011: aluControl = 4'b1001;//MULHSU
+                            3'b000: aluControl = 6'b100111;//MUL
+                            3'b001: aluControl = 6'b101000;//MULH
+                            3'b010: aluControl = 6'b101001;//MULHU
+                            3'b011: aluControl = 6'b101010;//MULHSU
+                            3'b100: aluControl = 6'b101011;//DIV
+                            3'b101: aluControl = 6'b101100;//DIVU
+                            3'b110: aluControl = 6'b101101;//REM
+                            3'b111: aluControl = 6'b101110;//REMU
                         endcase
                     3'b100:
                         case(funct7)
-                            3'b000: aluControl = 4'b1011;//DIV
-                            3'b001: aluControl = 4'b1100;//DIVU
-                            3'b010: aluControl = 4'b1101;//REM
-                            3'b011: aluControl = 4'b1110;//REMU
-                           
+                            3'b000: aluControl = 6'b000100;//XOR
+                            3'b001: aluControl = 6'b001000;//SRL
+                            3'b010: aluControl = 6'b001001;//SRA
+                            3'b011: aluControl = 6'b001010;//ANDN
+                            3'b100: aluControl = 6'b001011;//ORN
+                            3'b101: aluControl = 6'b001100;//XNOR
+                            3'b110: aluControl = 6'b001101;//REV8
+                            3'b111: aluControl = 6'b001110;//ROL
                         endcase
-                    
-                    default: aluControl = 4'b0000; // Default to ADD
+                    3'b101:
+                        case(funct7)
+                            3'b000: aluControl = 6'b001111;//ROR
+                            3'b001: aluControl = 6'b010000;//ROL16
+                            3'b010: aluControl = 6'b010001;//ROR16
+                            3'b011: aluControl = 6'b010010;//SH1ADD
+                            3'b100: aluControl = 6'b010011;//SH2ADD
+                            3'b101:aluControl = 6'b000111; // SLTU
+                            3'b110: aluControl = 6'b010101;//BINV
+                            3'b111: aluControl = 6'b010110;//BCLR
+                        endcase 
+                    3'b111:
+                        case(funct7)
+                            3'b000: aluControl = 6'b010111;//BSET
+                            3'b001: aluControl = 6'b011000;//MAX
+                            3'b010: aluControl = 6'b011001;//MIN
+                            3'b011: aluControl = 6'b011010;//MAXU
+                            3'b100: aluControl = 6'b011011;//MINU
+                            3'b101: aluControl = 6'b011100;//ORC.B
+                            3'b110: aluControl = 6'b011101;//SEXT.B
+                            3'b111: aluControl = 6'b011110;//SEXT.H
+                        endcase 
+                    3'b110: 
+                        case(funct7)
+                            3'b000: aluControl = 6'b011111;//ZEXT.H 
+                            3'b001: aluControl = 6'b100000;//CPOP
+                            3'b010: aluControl = 6'b100001;//CLZ
+                            3'b011: aluControl = 6'b100010;//CTZ
+                            3'b100: aluControl = 6'b000011; // OR
+                            3'b101: aluControl = 6'b010100;//SH3ADD
+                           
+                        endcase 
+                                                     
+                    default: aluControl = 6'b000000; // Default to ADD
                 endcase
             end
 
@@ -79,42 +117,55 @@ module control_unit (
                 regWrite   = 1;
                 resultSrc  = 1;
                 aluSrc     = 1;
-                immSrc     = 2'b00;
-                aluControl = 4'b0000; // ADD for address calculation
+                immSrc     = 3'b000;
+                aluControl = 6'b110110;
             end
 
             I_LOAD: begin
                 regWrite   = 1;
                 aluSrc     = 1;
-                immSrc     = 2'b00;
+                immSrc     = 3'b001;
                 resultSrc  = 1;
-                aluControl = 4'b0000; // ADD for address calculation
+                aluControl = 6'b000000; // ADD for address calculation
             end
 
-            I_ALU: begin
+           I_ALU: begin
                 regWrite   = 1;
                 aluSrc     = 1;
-                immSrc     = 2'b00;
+                immSrc     = 3'b001;
                 resultSrc  = 0;
                 case (funct3)
-                    3'b000: aluControl = 4'b0000; // ADDI
-                    3'b111: aluControl = 4'b0100; // ANDI
-                    3'b110: aluControl = 4'b0101; // ORI
-                    default: aluControl = 4'b0000;
+                    3'b000: aluControl = 6'b000000; // ADDI
+                    3'b010: aluControl = 6'b000101; // SLTI
+                    3'b011: aluControl = 6'b000111; // SLTIU
+                    3'b100: aluControl = 6'b000100; // XORI
+                    3'b110: aluControl = 6'b000011; // ORI
+                    3'b111: aluControl = 6'b000010; // ANDI
+                    3'b001: aluControl = 6'b000110; // SLLI
+                    3'b101: begin
+                        case (funct7)
+                            3'b000: aluControl = 6'b001000; // SRLI
+                            3'b001: aluControl = 6'b001001; // SRAI
+                            default: aluControl = 6'bxxxxxx; // Undefined
+                        endcase
+                    end
+                    default: aluControl = 6'bxxxxxx; // Undefined
                 endcase
             end
+
 
             S_TYPE: begin
                 memWrite   = 1;
                 aluSrc     = 1;
-                immSrc     = 2'b01;
-                aluControl = 4'b0000; // ADD for address calculation
+                immSrc     = 3'b010;
+                aluControl = 6'b000000; // ADD for address calculation
             end
 
             U_LUI: begin
+                pcSrc      = 0;
                 regWrite   = 1;
                 aluSrc     = 0;
-                immSrc     = 2'b10;
+                immSrc     = 3'b011;
                 resultSrc  = 0;
             end
 
@@ -122,26 +173,33 @@ module control_unit (
                 regWrite   = 1;
                 pcSrc      = 0;
                 aluSrc     = 1;
-                immSrc     = 2'b10;
-                aluControl = 4'b0000; // ADD
+                immSrc     = 3'b011;
+                aluControl = 6'b000000; // ADD
             end
 
             B_TYPE: begin
-                pcSrc      = (zero) ? 1 : 0;
-                immSrc     = 2'b01;
+                //pcSrc      = (zero) ? 1 : 0;
+                //pcSrc      = branch_taken;
+                pcSrc = 1;
+                immSrc     = 3'b000;
                 aluSrc     = 0;
                 case (funct3)
-                    3'b000: aluControl = 4'b0001; // BEQ
-                    3'b001: aluControl = 4'b0001; // BNE
-                    default: aluControl = 4'b0000;
+                    3'b000: aluControl = 6'b101111; // BEQ
+                    3'b001: aluControl = 6'b110000; // BNE
+                    3'b010: aluControl = 6'b110001; // BLT
+                    3'b011: aluControl = 6'b110010; // BGE
+                    3'b100: aluControl = 6'b110011; // BLTU
+                    3'b101: aluControl = 6'b110100; // BGEU
+                    default: aluControl = 6'b000000; 
                 endcase
             end
 
-            J_TYPE: begin
+            J_TYPE: begin //JAL
                 pcSrc      = 1;
                 regWrite   = 1;
                 resultSrc  = 1;
-                immSrc     = 2'b11;
+                immSrc     = 3'b100;
+                aluControl = 6'b110101;
             end
 
             default: begin
@@ -149,7 +207,7 @@ module control_unit (
                 pcSrc      = 0;
                 resultSrc  = 0;
                 memWrite   = 0;
-                aluControl = 4'b0000;
+                aluControl = 6'b000000;
                 aluSrc     = 0;
                 immSrc     = 2'b00;
                 regWrite   = 0;
