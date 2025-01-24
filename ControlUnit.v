@@ -188,7 +188,7 @@ module control_unit (
             U_LUI: begin
                 pcSrc      = 0;
                 regWrite   = 1;
-                aluSrc     = 0;
+                aluSrc     = 1;
                 immSrc     = 3'b011;
                 resultSrc  = 0;
             end
@@ -225,7 +225,7 @@ module control_unit (
             end
 
             default: begin
-                // Default values (NOP)
+                // Default values 
                 pcSrc      = 0;
                 resultSrc  = 0;
                 memWrite   = 0;
@@ -233,8 +233,8 @@ module control_unit (
                 aluSrc     = 0;
                 immSrc     = 3'b000;
                 regWrite   = 0;
-            end  //FENCE as NOP
-        endcase
+            end  
+        endcase //FENCE as NOP
     end
 
 endmodule
